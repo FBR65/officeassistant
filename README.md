@@ -273,21 +273,6 @@ systemctl --user start officeassistant-db officeassistant-api officeassistant-ui
 Einzelheiten, Kennwörter, Schlüsseldateien und der Zeitgeber für Routinen stehen in
 `deploy/README.md`.
 
-## Dokumentation
-
-| Datei | Inhalt |
-|---|---|
-| `docs/specs/2026-11-05-officeassistant-spec.md` | Spezifikation mit Anforderungen, Entscheidungen und Änderungsverlauf |
-| `docs/specs/2026-11-05-ui-uebersicht-und-verwaltung-spec.md` | Übersicht, Navigation, Verwaltungsseite, mit Nachweistabelle |
-| `docs/specs/p0-results.md` | Machbarkeitsprüfungen: KoliBri in NiceGUI, Freigaben, IAM, Werkzeugaufruf, Gmail |
-| `docs/specs/p1-results.md` | Gerüst, Identität, Datenhaltung, Oberflächenhülle |
-| `docs/specs/p2-results.md` | Postfachwerkzeuge und Freigaben |
-| `docs/specs/p2-1-gmail-results.md` | Gmail über IMAP und SMTP |
-| `docs/specs/p3-results.md` | Exchange lokal über IMAP/SMTP |
-| `docs/specs/p4-results.md` | Team, Routinen, Gedächtnis, Anbindungen |
-| `docs/specs/arbeitsseiten-results.md` | Post, Chat und Kalender in der Oberfläche |
-| `docs/specs/connections-results.md` | Anbindungen je Nutzer |
-| `docs/specs/p6-evidence.md` | Nachweise je Anforderung |
 
 ## Stand und Grenzen
 

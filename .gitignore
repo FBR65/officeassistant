@@ -18,3 +18,4 @@ assets/kolibri/
 spikes/*/node_modules/
 spikes/p0_1_kolibri/static/
 .pytest_cache/
+docs/
