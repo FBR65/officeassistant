@@ -293,9 +293,8 @@ Ehrlich benannt, damit niemand mehr erwartet, als geprüft ist:
   es nicht.
 - **Routinen laufen über den Zeitgeber des Systems** (`scripts/run_routine.py --due`), nicht
   über einen eigenen Scheduler im Dienst.
-- **Eine Lizenzdatei fehlt noch.** Ziel ist MIT; die Datei `LICENSE` ist zu ergänzen.
+
 
 ## Lizenz
 
-MIT ist vorgesehen. Solange keine `LICENSE`-Datei im Wurzelverzeichnis liegt, gilt die
-Lizenz als nicht erteilt.
+MIT
