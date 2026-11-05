@@ -1,0 +1,10 @@
+[Unit]
+Description=OfficeAssistant: jede Minute prüfen, ob eine Routine fällig ist
+
+[Timer]
+OnCalendar=*-*-* *:*:00
+AccuracySec=10s
+Unit=oa-routine.service
+
+[Install]
+WantedBy=timers.target

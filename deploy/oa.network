@@ -1,0 +1,6 @@
+[Unit]
+Description=OfficeAssistant Netzwerk
+
+[Network]
+NetworkName=oa
+Subnet=10.89.10.0/24

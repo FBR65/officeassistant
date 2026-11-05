@@ -1,0 +1,10 @@
+[Unit]
+Description=OfficeAssistant: fällige Routinen starten
+After=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/speedy/Dokumente/dev/OfficeAssistant
+EnvironmentFile=/home/speedy/Dokumente/dev/OfficeAssistant/.env
+ExecStart=/home/speedy/.local/bin/uv run python scripts/run_routine.py --due
+TimeoutStartSec=900

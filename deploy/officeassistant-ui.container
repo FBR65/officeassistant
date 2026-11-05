@@ -1,0 +1,22 @@
+[Unit]
+Description=OfficeAssistant Oberfläche (NiceGUI + KoliBri)
+Requires=officeassistant-api.service
+After=officeassistant-api.service
+
+[Container]
+ContainerName=officeassistant-ui
+Image=localhost/oa-ui:0.1
+Network=oa.network
+PublishPort=127.0.0.1:8099:8099
+EnvironmentFile=%h/officeassistant/ui.env
+Environment=OA_KOLIBRI_DIR=/app/assets/kolibri
+Environment=OA_API_BASE_URL=http://officeassistant-api:7777
+HealthCmd=python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8099/', timeout=4).status==200 else 1)"
+HealthInterval=30s
+HealthStartPeriod=30s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target

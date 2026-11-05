@@ -1,0 +1,41 @@
+[project]
+name = "officeassistant"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "FBR65", email = "FBR65@duck.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "agno[os]>=3.1.12",
+    "authlib>=1.9.4",
+    "cryptography>=50.0.2",
+    "httpx>=0.28.1",
+    "icalendar>=7.3.0",
+    "nicegui>=4.0.0",
+    "openai>=3.46.0",
+    "psycopg[binary]>=3.3.8",
+    "pydantic-settings>=2.16.2",
+    "recurring-ical-events>=3.8.2",
+]
+
+[project.scripts]
+officeassistant = "officeassistant:main"
+officeassistant-ui = "officeassistant.ui.app:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: needs a running Postgres (OA_TEST_DB_URL) or other external service",
+]
+addopts = "-q"
+
+[build-system]
+requires = ["uv_build>=0.12.5,<0.13.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+]

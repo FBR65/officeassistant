@@ -1,0 +1,222 @@
+{
+  "realm": "oa",
+  "enabled": true,
+  "sslRequired": "external",
+  "registrationAllowed": false,
+  "accessTokenLifespan": 600,
+  "components": {
+    "org.keycloak.storage.UserStorageProvider": [
+      {
+        "name": "ldap-directory",
+        "providerId": "ldap",
+        "subType": "ldap",
+        "config": {
+          "enabled": [
+            "true"
+          ],
+          "priority": [
+            "0"
+          ],
+          "vendor": [
+            "other"
+          ],
+          "connectionUrl": [
+            "ldap://oa-ldap:389"
+          ],
+          "usersDn": [
+            "ou=users,dc=example,dc=org"
+          ],
+          "bindDn": [
+            "cn=admin,dc=example,dc=org"
+          ],
+          "bindCredential": [
+            "CHANGE-ME"
+          ],
+          "authType": [
+            "simple"
+          ],
+          "usernameLDAPAttribute": [
+            "uid"
+          ],
+          "rdnLDAPAttribute": [
+            "cn"
+          ],
+          "uuidLDAPAttribute": [
+            "entryUUID"
+          ],
+          "userObjectClasses": [
+            "inetOrgPerson"
+          ],
+          "editMode": [
+            "READ_ONLY"
+          ],
+          "importEnabled": [
+            "true"
+          ],
+          "syncRegistrations": [
+            "false"
+          ],
+          "searchScope": [
+            "1"
+          ],
+          "validatePasswordPolicy": [
+            "false"
+          ],
+          "trustEmail": [
+            "true"
+          ],
+          "allowKerberosAuthentication": [
+            "false"
+          ],
+          "useKerberosForPasswordAuthentication": [
+            "false"
+          ],
+          "changedSyncPeriod": [
+            "-1"
+          ],
+          "fullSyncPeriod": [
+            "-1"
+          ],
+          "batchSizeForSync": [
+            "1000"
+          ]
+        }
+      }
+    ],
+    "org.keycloak.storage.ldap.mappers.LDAPStorageMapper": [
+      {
+        "name": "username-mapper",
+        "providerId": "user-attribute-ldap-mapper",
+        "subType": "ldap-user-attribute-mapper",
+        "parentId": "ldap-directory",
+        "config": {
+          "user.model.attribute": [
+            "username"
+          ],
+          "ldap.attribute": [
+            "uid"
+          ],
+          "read.only": [
+            "true"
+          ],
+          "always.read.value.from.ldap": [
+            "true"
+          ],
+          "is.mandatory.in.ldap": [
+            "false"
+          ]
+        }
+      },
+      {
+        "name": "email-mapper",
+        "providerId": "user-attribute-ldap-mapper",
+        "subType": "ldap-user-attribute-mapper",
+        "parentId": "ldap-directory",
+        "config": {
+          "user.model.attribute": [
+            "email"
+          ],
+          "ldap.attribute": [
+            "mail"
+          ],
+          "read.only": [
+            "true"
+          ],
+          "always.read.value.from.ldap": [
+            "true"
+          ],
+          "is.mandatory.in.ldap": [
+            "false"
+          ]
+        }
+      },
+      {
+        "name": "firstName-mapper",
+        "providerId": "user-attribute-ldap-mapper",
+        "subType": "ldap-user-attribute-mapper",
+        "parentId": "ldap-directory",
+        "config": {
+          "user.model.attribute": [
+            "firstName"
+          ],
+          "ldap.attribute": [
+            "cn"
+          ],
+          "read.only": [
+            "true"
+          ],
+          "always.read.value.from.ldap": [
+            "true"
+          ],
+          "is.mandatory.in.ldap": [
+            "false"
+          ]
+        }
+      },
+      {
+        "name": "lastName-mapper",
+        "providerId": "user-attribute-ldap-mapper",
+        "subType": "ldap-user-attribute-mapper",
+        "parentId": "ldap-directory",
+        "config": {
+          "user.model.attribute": [
+            "lastName"
+          ],
+          "ldap.attribute": [
+            "sn"
+          ],
+          "read.only": [
+            "true"
+          ],
+          "always.read.value.from.ldap": [
+            "true"
+          ],
+          "is.mandatory.in.ldap": [
+            "false"
+          ]
+        }
+      }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "oa-ui",
+      "name": "OfficeAssistant Oberfläche",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "BITTE-NACH-IMPORT-SETZEN",
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": [
+        "https://officeassistant.example.org/auth/callback"
+      ],
+      "webOrigins": [
+        "+"
+      ],
+      "protocolMappers": [
+        {
+          "name": "agno-scopes",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-hardcoded-claim-mapper",
+          "config": {
+            "claim.name": "scopes",
+            "claim.value": "[\"agents:read\", \"agents:*:run\", \"sessions:read\", \"sessions:write\", \"runs:read\", \"approvals:read\", \"approvals:write\"]",
+            "jsonType.label": "JSON",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "userinfo.token.claim": "false"
+          }
+        }
+      ],
+      "attributes": {
+        "post.logout.redirect.uris": "https://officeassistant.example.org/*"
+      }
+    }
+  ],
+  "internationalizationEnabled": true,
+  "supportedLocales": [
+    "de",
+    "en"
+  ],
+  "defaultLocale": "de"
+}

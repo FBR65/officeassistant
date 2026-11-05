@@ -1,0 +1,14 @@
+{
+  "name": "officeassistant-assets",
+  "version": "1.0.0",
+  "description": "KoliBri-Webcomponents für den Eigenbetrieb (kein CDN)",
+  "private": true,
+  "license": "EUPL-1.2",
+  "dependencies": {
+    "@public-ui/components": "4.5.0",
+    "@public-ui/theme-bwst": "^4.5.0",
+    "@public-ui/theme-default": "4.5.0",
+    "@public-ui/theme-bwst": "4.5.0",
+    "@public-ui/themes": "^4.5.0"
+  }
+}

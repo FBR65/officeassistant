@@ -1,0 +1,17 @@
+{
+  "name": "p0_1_kolibri",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "@public-ui/components": "^4.5.0",
+    "@public-ui/theme-default": "^4.5.0"
+  }
+}

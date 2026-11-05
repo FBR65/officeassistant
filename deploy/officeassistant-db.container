@@ -1,0 +1,24 @@
+[Unit]
+Description=OfficeAssistant Datenbank (PostgreSQL 16 mit pgvector)
+After=network-online.target
+
+[Container]
+ContainerName=officeassistant-db
+Image=docker.io/pgvector/pgvector:pg16
+Network=oa.network
+PublishPort=127.0.0.1:55432:5432
+Volume=oa-db:/var/lib/postgresql/data:Z
+Secret=pg-password,type=env,target=POSTGRES_PASSWORD
+Environment=POSTGRES_USER=oa
+Environment=POSTGRES_DB=oa
+HealthCmd=pg_isready -U oa -d oa
+HealthInterval=15s
+HealthRetries=5
+HealthStartPeriod=20s
+
+[Service]
+Restart=always
+TimeoutStartSec=120
+
+[Install]
+WantedBy=default.target

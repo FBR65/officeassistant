@@ -1,0 +1,22 @@
+[Unit]
+Description=OfficeAssistant Agenten-API (Agno/AgentOS)
+Requires=officeassistant-db.service
+After=officeassistant-db.service
+
+[Container]
+ContainerName=officeassistant-api
+Image=localhost/oa-api:0.1
+Network=oa.network
+PublishPort=127.0.0.1:7777:7777
+EnvironmentFile=%h/officeassistant/api.env
+Environment=JWT_JWKS_FILE=/run/secrets/oidc-jwks.json
+Secret=oidc-jwks.json,type=mount,target=oidc-jwks.json
+HealthCmd=python -c "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:7777/health', timeout=4).status==200 else 1)"
+HealthInterval=30s
+HealthStartPeriod=30s
+
+[Service]
+Restart=always
+
+[Install]
+WantedBy=default.target
