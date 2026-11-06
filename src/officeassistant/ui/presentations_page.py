@@ -14,7 +14,8 @@ from nicegui import ui
 from starlette.requests import Request
 from starlette.responses import FileResponse, RedirectResponse, Response
 
-from officeassistant.presentations import builder, outline, rules, store
+from officeassistant.documents import store as dokumente
+from officeassistant.presentations import builder, outline, proof, rules, store
 from officeassistant.settings import Settings
 from officeassistant.store import db
 from officeassistant.ui import auth, layout
@@ -74,7 +75,38 @@ def _tabelle(eintraege: list[store.Praesentation]) -> str:
     return "".join(bloecke)
 
 
-def _formular() -> str:
+def _auswahl(dokumente: list, bilder: list) -> tuple[str, str]:
+    """Zwei Auswahllisten: Textgrundlage und Bilder."""
+    if not dokumente:
+        grundlage = (
+            "<p style='margin:0;color:#555'>Noch kein Dokument hochgeladen. Laden Sie es unter "
+            "<a href=\"/dokumente\">Dokumente</a> hoch; danach steht es hier zur Auswahl.</p>"
+        )
+    else:
+        grundlage = "".join(
+            f'<label style="display:block;margin:0.2rem 0">'
+            f'<input type="checkbox" name="grundlage" value="{d.id}"> '
+            f'Nr. {d.id}: {d.name} ({d.seitenzahl} Seiten)</label>'
+            for d in dokumente
+        )
+
+    if not bilder:
+        bildliste = (
+            "<p style='margin:0;color:#555'>Kein Bild hochgeladen. PNG oder JPG unter "
+            "<a href=\"/dokumente\">Dokumente</a> hochladen; danach erscheint es hier.</p>"
+        )
+    else:
+        bildliste = "".join(
+            f'<label style="display:block;margin:0.2rem 0">'
+            f'<input type="checkbox" name="bild" value="{d.id}"> '
+            f'Nr. {d.id}: {d.name}</label>'
+            for d in bilder
+        )
+    return grundlage, bildliste
+
+
+def _formular(dokumente: list | None = None, bilder: list | None = None) -> str:
+    grundlage, bildliste = _auswahl(dokumente or [], bilder or [])
     vorlage = SETTINGS.presentation_template
     hinweis = (
         f"Designvorlage: {Path(vorlage).name}"
@@ -88,7 +120,31 @@ def _formular() -> str:
       <kol-input-text _label="Titel der Präsentation" data-name="titel" _required="true"></kol-input-text>
       <kol-input-text _label="Untertitel" data-name="untertitel"></kol-input-text>
       <kol-textarea _label="Gliederung" data-name="gliederung" _rows="12">{BEISPIEL}</kol-textarea>
-      <kol-input-text _label="Quellen und Bildnachweis" data-name="quelle"></kol-input-text>
+
+      <fieldset style="border:1px solid #ddd;padding:0.8rem;border-radius:4px">
+        <legend>Grundlage: welche Dokumente?</legend>
+        <p style="margin:0 0 0.5rem 0;color:#555;font-size:0.9em">
+          Jede gewählte Datei wird als Quelle genannt und ihre Aussagen werden gegen den
+          Text geprüft. Ohne Auswahl entsteht die Präsentation nur aus Ihrer Gliederung.
+        </p>
+        {grundlage}
+      </fieldset>
+
+      <fieldset style="border:1px solid #ddd;padding:0.8rem;border-radius:4px">
+        <legend>Bilder auf eigenen Folien</legend>
+        <p style="margin:0 0 0.5rem 0;color:#555;font-size:0.9em">
+          Jedes gewählte Bild bekommt eine eigene Folie mit dem Dateinamen als Beschriftung.
+        </p>
+        {bildliste}
+      </fieldset>
+
+      <kol-input-text _label="Eigene Quellenangabe (freiwillig)" data-name="quelle"
+                      _placeholder="Zum Beispiel: Monatsbericht der Abteilung, Stand 31.10.2026">
+      </kol-input-text>
+      <p style="margin:0;color:#555;font-size:0.9em">
+        Diese Zeile steht zusätzlich auf der Quellenfolie. Die Dokumente aus der Auswahl oben
+        werden automatisch mit Name, Seiten und Datum genannt — hier ist nichts einzutragen.
+      </p>
       <div><kol-button _label="Präsentation erstellen" _variant="primary"></kol-button></div>
       <p style="margin:0;color:#555;font-size:0.9em">
         Jede Folie beginnt mit „# Titel". Stichpunkte beginnen mit „-". Die Zeile „Notiz:"
@@ -109,8 +165,13 @@ async def praesentationen(request: Request) -> Response | None:
     conn = _verbindung()
     try:
         eintraege = store.liste(conn, user.subject)
+        hochgeladen = dokumente.liste(conn, user.subject)
     finally:
         conn.close()
+
+    ist_bild = lambda eintrag: eintrag.pfad.lower().endswith((".png", ".jpg", ".jpeg"))
+    texte = [eintrag for eintrag in hochgeladen if not ist_bild(eintrag)]
+    bilder = [eintrag for eintrag in hochgeladen if ist_bild(eintrag)]
 
     meldung = request.query_params.get("meldung", "")
     with layout.content():
@@ -119,7 +180,7 @@ async def praesentationen(request: Request) -> Response | None:
         if meldung:
             layout.banner(meldung)
         layout.card("Vorhandene Präsentationen", _tabelle(eintraege))
-        layout.card("Neue Präsentation aus einer Gliederung", _formular())
+        layout.card("Neue Präsentation aus einer Gliederung", _formular(texte, bilder))
     return None
 
 
@@ -142,6 +203,8 @@ async def erzeugen(request: Request) -> Response:
 
     formular = await request.form()
     titel = str(formular.get("titel", "")).strip()
+    grundlagen = [int(k) for k in formular.getlist("grundlage") if str(k).isdigit()]
+    bilder = [int(k) for k in formular.getlist("bild") if str(k).isdigit()]
     untertitel = str(formular.get("untertitel", "")).strip()
     gliederung = str(formular.get("gliederung", ""))
     quelle = str(formular.get("quelle", "")).strip()
@@ -163,8 +226,89 @@ async def erzeugen(request: Request) -> Response:
         folie["stichpunkte"] = uebrig
         _tabelle_aus_zeilen(folie, tabelle_zeilen)
 
+    # Gewählte Bilder bekommen je eine Folie mit dem Dateinamen als Beschriftung.
+    if bilder:
+        conn_bild = _verbindung()
+        try:
+            for kennung in bilder:
+                try:
+                    eintrag = dokumente.hole(conn_bild, user.subject, kennung)
+                except dokumente.DokumentFehler as fehler:
+                    return RedirectResponse(
+                        "/praesentationen?meldung=" + quote(str(fehler)), status_code=303
+                    )
+                beschreibung["folien"].append(
+                    {
+                        "titel": f"Bild: {eintrag.name}",
+                        "stichpunkte": [],
+                        "notiz": f"Auf das Bild {eintrag.name} eingehen, 30 Sekunden.",
+                        "bilder": [{"dokument": kennung, "beschriftung": eintrag.name}],
+                    }
+                )
+        finally:
+            conn_bild.close()
+
+    # Gewählte Dokumente: Quelle nennen und jede Folie gegen ihren Text prüfen.
+    angabe = ""
+    texte: list[str] = []
+    if grundlagen:
+        conn_quelle = _verbindung()
+        try:
+            angaben = []
+            for kennung in grundlagen:
+                try:
+                    eintrag = dokumente.hole(conn_quelle, user.subject, kennung)
+                except dokumente.DokumentFehler as fehler:
+                    return RedirectResponse(
+                        "/praesentationen?meldung=" + quote(str(fehler)), status_code=303
+                    )
+                seiten = dokumente.seiten(conn_quelle, eintrag.id)
+                texte.append("\n\n".join(seite.text for seite in seiten))
+                gelesen = ", ".join(str(seite.nummer) for seite in seiten if seite.text)
+                angaben.append(
+                    f"{eintrag.name} (Seiten {gelesen}, Stand {eintrag.angelegt.astimezone():%d.%m.%Y})"
+                )
+        finally:
+            conn_quelle.close()
+        angabe = ("Dokumente: " if len(angaben) > 1 else "Dokument: ") + "; ".join(angaben)
+        beschreibung["quelle"] = (
+            f"{beschreibung.get('quelle', '')} · {angabe}"
+            if beschreibung.get("quelle")
+            else angabe
+        )
+
     try:
         deck = rules.deck_aus_dict(beschreibung)
+        if bilder:
+            conn_pfad = _verbindung()
+            try:
+                for folie in deck.folien:
+                    for bild in folie.bilder:
+                        if bild.get("pfad"):
+                            continue
+                        try:
+                            bild["pfad"] = str(
+                                dokumente.als_bild(conn_pfad, user.subject, int(bild["dokument"]))
+                            )
+                        except (dokumente.DokumentFehler, KeyError, ValueError) as fehler:
+                            return RedirectResponse(
+                                "/praesentationen?meldung=" + quote(str(fehler)), status_code=303
+                            )
+            finally:
+                conn_pfad.close()
+
+        if texte:
+            befunde = proof.pruefe(deck, "\n\n".join(texte))
+            if befunde:
+                return RedirectResponse(
+                    "/praesentationen?meldung="
+                    + quote(
+                        "Nicht in den Dokumenten belegt: "
+                        + "; ".join(str(befund) for befund in befunde[:6])
+                    ),
+                    status_code=303,
+                )
+
         vorlage = Path(SETTINGS.presentation_template) if SETTINGS.presentation_template else None
         ziel = store.ordner(SETTINGS.data_dir, user.subject) / store.dateiname(titel)
         builder.baue(deck, ziel, vorlage=vorlage if vorlage and vorlage.is_file() else None)

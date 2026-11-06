@@ -104,7 +104,7 @@ steht als `resolved_by` in der Entscheidung.
 | Post | `/post` | Nachrichtenliste, Nachricht lesen, Antwort entwerfen |
 | Chat | `/chat` | Mattermost-Verlauf, alle fünf Sekunden neu, Senden per Klick |
 | Kalender | `/kalender` | Woche von Montag bis Sonntag, Wiederholungen aufgelöst |
-| Präsentationen | `/praesentationen` | Dateien erstellen, herunterladen, löschen; Vorschau als Bilder |
+| Präsentationen | `/praesentationen` | Gliederung, Auswahl der Dokumente und Bilder, erstellen, herunterladen, löschen, Vorschau |
 | Dokumente | `/dokumente` | PDF und Bilder hochladen, Text je Seite lesen, herunterladen, löschen |
 | Aufträge | `/auftraege` | freier Auftrag an den Assistenten, letzte Antwort |
 | Freigaben | `/freigaben` | offene Entscheidungen, freigeben oder ablehnen |
@@ -276,6 +276,11 @@ Rechte der Verwaltungsseite und die Richtlinien der Präsentationen.
 
 Ein Auftrag im Chat oder das Formular auf `/praesentationen` erzeugt eine `.pptx`. Beide Wege
 enden in derselben Ablage und gelten denselben Richtlinien.
+
+Im Formular wählen Sie unter **Grundlage: welche Dokumente?** die Dateien, gegen deren Text
+geprüft wird und die auf der Quellenfolie erscheinen, und unter **Bilder auf eigenen Folien** die
+PNG- und JPG-Dateien. Das Feld **Eigene Quellenangabe** ist freiwillig; die Dokumente werden
+automatisch genannt.
 
 | Regel | Wert |
 |---|---|
