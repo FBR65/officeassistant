@@ -131,7 +131,7 @@ Entscheidungen. Die Oberfläche ist deutsch, in der Sie-Form.
 | `archive_mail` | Nachricht ablegen | **ja** |
 | `list_calendar` | Termine ab heute, Vorgabe sieben Tage, Ortszeit | nein |
 | `remember` | Arbeitsanweisung merken | nein |
-| `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen und ablegen | nein |
+| `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen und ablegen; mit `quelle_dokument` wird jede Folie gegen den Dokumenttext geprüft | nein |
 | `list_documents`, `read_document` | hochgeladene Dokumente auflisten und lesen | nein |
 | `search_jira`, `search_confluence`, `search_sharepoint`, `search_onenote`, `search_webex` | Lesesuche in den Anbindungen | nein |
 
@@ -266,7 +266,7 @@ OA_TEST_DB_URL=postgresql://... uv run pytest        # alle Tests, mit Datenbank
 uv run pytest -m integration                         # nur die Tests mit Außendienst
 ```
 
-Stand: **185 Tests bestanden, 9 übersprungen**. Übersprungen werden Tests, die eine laufende
+Stand: **193 Tests bestanden, 9 übersprungen**. Übersprungen werden Tests, die eine laufende
 Datenbank oder einen Testserver verlangen. Die Tests decken unter anderem ab: Anmeldung und
 Sitzungscookie, Werkzeuge des Postfachs, Freigaben über einen Neustart hinweg, Rollen des
 Teams, Zeitpläne in Alltagssprache, Prompt-Einschleusung, Kennzahlen der Übersicht, die
@@ -291,7 +291,11 @@ enden in derselben Ablage und gelten denselben Richtlinien.
 | Bilder | aus dem Postfach oder vom Server, mit Beschriftung und Bildnachweis |
 
 Verstößt eine Beschreibung gegen eine Regel, entsteht **keine** Datei; die Meldung nennt die
-Folie und den Grund. Ist eine Designvorlage gesetzt, kommen Layout, Schrift und Farben aus
+Folie und den Grund.
+
+Wird die Präsentation aus einem hochgeladenen Dokument gebaut, prüft das Werkzeug jede Folie
+gegen dessen Text (Feld `quelle_dokument`). Nicht belegte Eigennamen, Abkürzungen und Zahlen
+verhindern die Datei. So fiel im Test „Amazon Comprehend" auf, das im Artikel nicht vorkommt. Ist eine Designvorlage gesetzt, kommen Layout, Schrift und Farben aus
 ihrem Master; Textmenge, Notizen und Fußzeile bleiben Pflicht.
 
 ```bash

@@ -63,6 +63,9 @@ def build_app():
         "im Volltext.",
         "create_presentation: Steht im Ergebnis \"erstellt\": true, ist die Datei abgelegt; "
         "rufe das Werkzeug dann nicht erneut auf.",
+        "Baust du eine Präsentation aus einem hochgeladenen Dokument, gib bei "
+        "create_presentation die Nummer als quelle_dokument an. Dann wird jede Folie gegen den "
+        "Text geprüft.",
         "Steht im Ergebnis ein Feld \"fehler\", ist NICHTS entstanden. Nenne den Fehler wörtlich "
         "und behaupte keinen Erfolg. Korrigiere die Eingabe und rufe das Werkzeug höchstens "
         "einmal erneut auf.",

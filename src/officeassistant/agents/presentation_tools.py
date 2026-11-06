@@ -17,7 +17,7 @@ from agno.tools import tool
 from pydantic import BaseModel, Field
 
 from officeassistant.agents.mail_tools import _session
-from officeassistant.presentations import builder, rules, store
+from officeassistant.presentations import builder, proof, rules, store
 from officeassistant.settings import Settings
 
 
@@ -71,6 +71,7 @@ def create_presentation(
     folien: list[FolieIn],
     untertitel: str = "",
     quelle: str = "",
+    quelle_dokument: int = 0,
     run_context: RunContext | None = None,
 ) -> dict[str, Any]:
     """Erstellt eine PowerPoint-Datei (.pptx) und legt sie in der Ablage ab.
@@ -87,6 +88,8 @@ def create_presentation(
             `beschriftung`).
         untertitel: Untertitel der Titelfolie.
         quelle: Text für die letzte Folie „Quellen"; Pflicht, wenn Bilder verwendet werden.
+        quelle_dokument: Nummer eines hochgeladenen Dokuments. Ist sie gesetzt, wird jede
+            Folie gegen dessen Text geprüft; nicht belegte Begriffe verhindern die Datei.
     """
     settings = Settings.load()
     beschreibung = {
@@ -147,6 +150,28 @@ def create_presentation(
                 "ablege": f"/praesentationen (Nummer {vorhanden.id})",
                 "hinweis": "Diese Präsentation liegt bereits vor. Werkzeug nicht erneut aufrufen.",
             }
+
+        if quelle_dokument:
+            from officeassistant.documents import store as dokumente
+
+            conn_quelle = _verbindung(settings)
+            try:
+                try:
+                    beleg = dokumente.hole(conn_quelle, user_id, int(quelle_dokument))
+                except dokumente.DokumentFehler as fehler:
+                    return {"fehler": str(fehler)}
+                seiten = dokumente.seiten(conn_quelle, beleg.id)
+            finally:
+                conn_quelle.close()
+            befunde = proof.pruefe(deck, "\n\n".join(seite.text for seite in seiten))
+            if befunde:
+                return {
+                    "fehler": "Nicht im Dokument belegt: "
+                    + "; ".join(str(befund) for befund in befunde[:8])
+                    + (f" (und {len(befunde) - 8} weitere)" if len(befunde) > 8 else ""),
+                    "hinweis": "Entfernen Sie diese Begriffe oder übernehmen Sie die Schreibweise "
+                    "aus dem Dokument. Ohne Beleg entsteht keine Datei.",
+                }
 
         try:
             builder.baue(deck, ziel, vorlage=vorlage)
