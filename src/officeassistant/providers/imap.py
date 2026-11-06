@@ -24,6 +24,7 @@ from email.message import EmailMessage, Message
 from email.utils import parsedate_to_datetime
 
 from officeassistant.providers.base import (
+    Attachment,
     DraftRef,
     Event,
     Message as MailMessage,
@@ -62,6 +63,9 @@ def _anriss(roh: bytes) -> str:
 
     zeilen = [zeile.strip() for zeile in text.splitlines() if zeile.strip()]
     return " ".join(zeilen)[:200]
+
+
+MAX_ANHANG = 10 * 1024 * 1024
 
 
 class ImapError(RuntimeError):
@@ -395,7 +399,29 @@ class ImapProvider:
             body_html=html,
             to=self._addresses(nachricht.get("To")),
             cc=self._addresses(nachricht.get("Cc")),
+            anhaenge=self._anhaenge(nachricht),
         )
+
+    def _anhaenge(self, nachricht: Message) -> tuple[Attachment, ...]:
+        """Anhänge lesen. Große Anhänge werden nur mit Namen und Größe geführt."""
+        gefunden: list[Attachment] = []
+        for teil in nachricht.walk():
+            if teil.is_multipart():
+                continue
+            if teil.get_content_disposition() != "attachment":
+                continue
+            dateiname = self._header_value(teil.get_filename()) or "anhang"
+            roh = teil.get_payload(decode=True) or b""
+            groesse = len(roh)
+            gefunden.append(
+                Attachment(
+                    dateiname=dateiname,
+                    art=teil.get_content_type(),
+                    groesse=groesse,
+                    inhalt=roh if groesse <= MAX_ANHANG else b"",
+                )
+            )
+        return tuple(gefunden)
 
     def _addresses(self, wert: str | None) -> tuple[str, ...]:
         if not wert:

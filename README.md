@@ -42,6 +42,8 @@ wird über einen OpenAI-kompatiblen Endpunkt angesprochen, die Identität über 
 | Nutzerverwaltung im Frontend | umgesetzt; nur für Verwaltungsrollen sichtbar |
 | Anbindungen an Jira, Confluence, SharePoint, OneNote, Webex | umgesetzt als Lesesuche, gegen Adressen erprobt |
 | Chat und Kalender in derselben Oberfläche | umgesetzt; Chat gegen einen Ersatzdienst geprüft |
+| PowerPoint-Dateien erstellen, mit Tabellen, Diagrammen und Bildern | umgesetzt; Richtlinien werden vor dem Speichern geprüft |
+| Zentrale Designvorlage für Präsentationen | umgesetzt; Vorlage gewinnt bei Schrift und Farbe |
 
 ## Aufbau
 
@@ -63,6 +65,7 @@ Oberfläche (NiceGUI, KoliBri)  ──JWT──▶  AgentOS (Agno)  ──▶  P
 | Routinen | Zeitplan in Alltagssprache, Ausführung, Ergebnisablage | `src/officeassistant/routines` |
 | Datenhaltung | Schema, Nutzer, Sitzungen, Verbindungen, Gedächtnis, Protokoll | `src/officeassistant/store` |
 | Kalender | ICS lesen, Wiederholungen auflösen | `src/officeassistant/calendar` |
+| Präsentationen | Richtlinien, Bau der `.pptx`, Ablage, Vorschau als Bild | `src/officeassistant/presentations` |
 | Betrieb | Containerdateien, Quadlets, Realm-Export | `deploy` |
 
 Die Anwendung kennt weder Verzeichnis noch Anbieter im Kern. Jeder Aufruf bekommt den
@@ -99,6 +102,7 @@ steht als `resolved_by` in der Entscheidung.
 | Post | `/post` | Nachrichtenliste, Nachricht lesen, Antwort entwerfen |
 | Chat | `/chat` | Mattermost-Verlauf, alle fünf Sekunden neu, Senden per Klick |
 | Kalender | `/kalender` | Woche von Montag bis Sonntag, Wiederholungen aufgelöst |
+| Präsentationen | `/praesentationen` | Dateien erstellen, herunterladen, löschen; Vorschau als Bilder |
 | Aufträge | `/auftraege` | freier Auftrag an den Assistenten, letzte Antwort |
 | Freigaben | `/freigaben` | offene Entscheidungen, freigeben oder ablehnen |
 | Routinen | `/routinen` | Routinen anlegen, ändern, abschalten, löschen; letzte Läufe |
@@ -124,6 +128,7 @@ Entscheidungen. Die Oberfläche ist deutsch, in der Sie-Form.
 | `archive_mail` | Nachricht ablegen | **ja** |
 | `list_calendar` | Termine ab heute, Vorgabe sieben Tage, Ortszeit | nein |
 | `remember` | Arbeitsanweisung merken | nein |
+| `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen und ablegen | nein |
 | `search_jira`, `search_confluence`, `search_sharepoint`, `search_onenote`, `search_webex` | Lesesuche in den Anbindungen | nein |
 
 Das Team `office-team` verteilt Aufträge auf vier Rollen: `triage` (suchen, lesen,
@@ -156,6 +161,7 @@ abzubrechen.
 | Keycloak | 26 oder neuer, mit Verbund auf LDAP oder Active Directory |
 | Sprachmodell | OpenAI-kompatibler Endpunkt, geprüft mit llama-swap, Kontextfenster mindestens 16384 Token |
 | Node.js | nur zum Bereitstellen der KoliBri-Dateien |
+| LibreOffice und Poppler | für die Vorschau der Präsentationen als Bild (`soffice`, `pdftoppm`) |
 
 ## Einrichten
 
@@ -239,6 +245,8 @@ Start mit einer deutschen Meldung ab, die den Variablennamen nennt.
 | `OA_APPROVER_TOKEN` | Token des Dienstkontos, das Freigaben auflöst | ja für Freigaben |
 | `OA_KEYCLOAK_REALM`, `OA_KEYCLOAK_ADMIN_USER`, `OA_KEYCLOAK_ADMIN_PASSWORD` | Zugang für die Nutzerverwaltung | nur für `/verwaltung` |
 | `JWT_JWKS_FILE` | Datei mit den Schlüsseln des Ausstellers | ja für die API |
+| `OA_DATA_DIR` | Ablage für erzeugte Dateien, zum Beispiel `data` | nein |
+| `OA_PRESENTATION_TEMPLATE` | Pfad zur zentralen Designvorlage (`.pptx`); leer heißt eingebaute Gestaltung | nein |
 | `OA_TEST_DB_URL` | Testdatenbank für die Integrationstests | nur für Tests |
 
 Kein Wert aus `.env.example` gehört ins Repository. `.env` ist in `.gitignore` eingetragen.
@@ -251,11 +259,38 @@ OA_TEST_DB_URL=postgresql://... uv run pytest        # alle Tests, mit Datenbank
 uv run pytest -m integration                         # nur die Tests mit Außendienst
 ```
 
-Stand: **160 Tests bestanden, 8 übersprungen**. Übersprungen werden Tests, die eine laufende
+Stand: **175 Tests bestanden, 9 übersprungen**. Übersprungen werden Tests, die eine laufende
 Datenbank oder einen Testserver verlangen. Die Tests decken unter anderem ab: Anmeldung und
 Sitzungscookie, Werkzeuge des Postfachs, Freigaben über einen Neustart hinweg, Rollen des
-Teams, Zeitpläne in Alltagssprache, Prompt-Einschleusung, Kennzahlen der Übersicht und die
-Rechte der Verwaltungsseite.
+Teams, Zeitpläne in Alltagssprache, Prompt-Einschleusung, Kennzahlen der Übersicht, die
+Rechte der Verwaltungsseite und die Richtlinien der Präsentationen.
+
+## Präsentationen
+
+Ein Auftrag im Chat oder das Formular auf `/praesentationen` erzeugt eine `.pptx`. Beide Wege
+enden in derselben Ablage und gelten denselben Richtlinien.
+
+| Regel | Wert |
+|---|---|
+| Format | 16:9, 33,87 × 19,05 cm |
+| Titel | 28–32 pt, dunkelgrau |
+| Fließtext | 19 pt, Unterpunkt 17 pt |
+| Stichpunkte | höchstens sechs je Folie |
+| Textmenge | höchstens 60 Wörter je Folie |
+| Notizen | auf jeder Folie Pflicht, mit Zeitangabe |
+| Fußzeile | Titel und Foliennummer, grau, unten |
+| Tabellen | Kopfzeile in Akzentfarbe, 12 pt |
+| Diagramme | Balken, Balken quer, Kreis, Linie; echte PowerPoint-Diagramme |
+| Bilder | aus dem Postfach oder vom Server, mit Beschriftung und Bildnachweis |
+
+Verstößt eine Beschreibung gegen eine Regel, entsteht **keine** Datei; die Meldung nennt die
+Folie und den Grund. Ist eine Designvorlage gesetzt, kommen Layout, Schrift und Farben aus
+ihrem Master; Textmenge, Notizen und Fußzeile bleiben Pflicht.
+
+```bash
+# zentrale Vorlage setzen (Pfad in .env):  OA_PRESENTATION_TEMPLATE=/pfad/hausvorlage.pptx
+uv run python scripts/demo_praesentation.py /tmp/demo     # Beispieldatei und Bilder
+```
 
 ## Betrieb mit Podman
 

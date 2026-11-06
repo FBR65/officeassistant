@@ -24,12 +24,27 @@ class MessageHeader:
 
 
 @dataclass(frozen=True, slots=True)
+class Attachment:
+    """Ein Anhang. `inhalt` bleibt leer, wenn der Anhang zu groß ist."""
+
+    dateiname: str
+    art: str
+    groesse: int
+    inhalt: bytes = b""
+
+    @property
+    def ist_bild(self) -> bool:
+        return self.art.startswith("image/")
+
+
+@dataclass(frozen=True, slots=True)
 class Message:
     header: MessageHeader
     body_text: str
     body_html: str | None = None
     to: tuple[str, ...] = ()
     cc: tuple[str, ...] = ()
+    anhaenge: tuple[Attachment, ...] = ()
 
 
 @dataclass(frozen=True, slots=True)

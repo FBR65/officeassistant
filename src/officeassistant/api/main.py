@@ -16,6 +16,7 @@ from agno.os import AgentOS
 from agno.os.authz import Authorization
 
 from officeassistant.agents.mail_tools import MAIL_TOOLS, configure_session
+from officeassistant.agents.presentation_tools import PRESENTATION_TOOLS
 from officeassistant.agents.connector_tools import CONNECTOR_TOOLS
 from officeassistant.agents.memory_tools import MEMORY_TOOLS, memory_instructions
 from officeassistant.agents.session import SessionResolver
@@ -59,6 +60,11 @@ def build_app():
         "Wenn der Nutzer Sie korrigiert, merke die Lehre mit remember.",
         "Für eine Übersicht genügt der Anriss aus search_mail; lies höchstens fünf Nachrichten "
         "im Volltext.",
+        "create_presentation: Steht im Ergebnis \"erstellt\": true, ist die Datei abgelegt; "
+        "rufe das Werkzeug dann nicht erneut auf.",
+        "Steht im Ergebnis ein Feld \"fehler\", ist NICHTS entstanden. Nenne den Fehler wörtlich "
+        "und behaupte keinen Erfolg. Korrigiere die Eingabe und rufe das Werkzeug höchstens "
+        "einmal erneut auf.",
         "Nutze nur Werkzeuge, die der Auftrag verlangt. list_calendar ausschließlich bei "
         "Fragen nach Terminen, sonst nie.",
         'Liefert ein Werkzeug ein Feld "fehler", gib diesen Text wieder, statt eine eigene '
@@ -73,7 +79,7 @@ def build_app():
         id="office-assistant",
         name="OfficeAssistant",
         model=_model(SETTINGS.role_leader),
-        tools=[*MAIL_TOOLS, *MEMORY_TOOLS, *CONNECTOR_TOOLS],
+        tools=[*MAIL_TOOLS, *MEMORY_TOOLS, *CONNECTOR_TOOLS, *PRESENTATION_TOOLS],
         instructions=anweisungen,
         db=db,
         # Verlauf klein halten: Werkzeugergebnisse früherer Läufe (Postfachlisten,

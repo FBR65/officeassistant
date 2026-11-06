@@ -24,6 +24,7 @@ from officeassistant.ui import (
     layout,
     mail_page,
     memory_page,
+    presentations_page,
     routines_page,
     runs,
 )
@@ -56,6 +57,7 @@ calendar_page.register(app)
 mail_page.register(app)
 chat_page.register(app)
 admin_page.register(app)
+presentations_page.register(app)
 
 
 

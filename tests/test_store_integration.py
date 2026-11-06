@@ -41,8 +41,8 @@ def test_migration_is_idempotent(conn):
     first = db.migrate(conn)
     second = db.migrate(conn)
 
-    assert first == second == 6
-    assert db.schema_version(conn) == 6
+    assert first == second == 7
+    assert db.schema_version(conn) == 7
 
 
 def test_users_upsert_and_role_check(conn):

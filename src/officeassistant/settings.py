@@ -54,6 +54,10 @@ class Settings(BaseSettings):
     ui_base_url: str = "http://127.0.0.1:8099"
     api_base_url: str = "http://127.0.0.1:7777"
     kolibri_dir: str = "assets/kolibri"
+
+    # Ablage für erzeugte Dateien und die zentrale Designvorlage für Präsentationen
+    data_dir: str = "data"
+    presentation_template: str = ""
     agent_id: str = "office-assistant"
     approver_token: str = ""
 

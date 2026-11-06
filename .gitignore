@@ -19,3 +19,6 @@ spikes/*/node_modules/
 spikes/p0_1_kolibri/static/
 .pytest_cache/
 docs/
+
+# Erzeugte Dateien (Präsentationen, Vorschauen) bleiben lokal
+data/

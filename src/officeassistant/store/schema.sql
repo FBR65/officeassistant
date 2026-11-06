@@ -178,3 +178,22 @@ CREATE TABLE IF NOT EXISTS connection (
 
 INSERT INTO schema_version (version) VALUES (6)
     ON CONFLICT (version) DO NOTHING;
+
+-- Erzeugte Präsentationen. Die Datei liegt im Datenverzeichnis; hier stehen Kennzahlen
+-- für die Liste und die Zuordnung zum Nutzer.
+CREATE TABLE IF NOT EXISTS presentation (
+    id          bigserial PRIMARY KEY,
+    user_id     text NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    titel       text NOT NULL,
+    dateiname   text NOT NULL,
+    pfad        text NOT NULL,
+    folienzahl  integer NOT NULL DEFAULT 0,
+    groesse     bigint NOT NULL DEFAULT 0,
+    vorlage     text NOT NULL DEFAULT '',
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_presentation_user ON presentation (user_id, created_at DESC);
+
+INSERT INTO schema_version (version) VALUES (7)
+    ON CONFLICT (version) DO NOTHING;
