@@ -25,6 +25,7 @@ NAV_GRUPPEN = [
             ("Chat", "/chat"),
             ("Kalender", "/kalender"),
             ("Präsentationen", "/praesentationen"),
+            ("Dokumente", "/dokumente"),
         ],
     ),
     (

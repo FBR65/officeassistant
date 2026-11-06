@@ -197,3 +197,30 @@ CREATE INDEX IF NOT EXISTS idx_presentation_user ON presentation (user_id, creat
 
 INSERT INTO schema_version (version) VALUES (7)
     ON CONFLICT (version) DO NOTHING;
+
+-- Hochgeladene Dokumente und der je Seite gelesene Text.
+CREATE TABLE IF NOT EXISTS document (
+    id          bigserial PRIMARY KEY,
+    user_id     text NOT NULL REFERENCES app_user(id) ON DELETE CASCADE,
+    name        text NOT NULL,
+    pfad        text NOT NULL,
+    seitenzahl  integer NOT NULL DEFAULT 0,
+    zeichen     integer NOT NULL DEFAULT 0,
+    per_ocr     integer NOT NULL DEFAULT 0,
+    created_at  timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS document_page (
+    id          bigserial PRIMARY KEY,
+    document_id bigint NOT NULL REFERENCES document(id) ON DELETE CASCADE,
+    nummer      integer NOT NULL,
+    text        text NOT NULL DEFAULT '',
+    verfahren   text NOT NULL DEFAULT 'textlayer',
+    hinweis     text NOT NULL DEFAULT '',
+    UNIQUE (document_id, nummer)
+);
+
+CREATE INDEX IF NOT EXISTS idx_document_user ON document (user_id, created_at DESC);
+
+INSERT INTO schema_version (version) VALUES (8)
+    ON CONFLICT (version) DO NOTHING;

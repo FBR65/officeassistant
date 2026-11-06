@@ -16,6 +16,7 @@ from agno.os import AgentOS
 from agno.os.authz import Authorization
 
 from officeassistant.agents.mail_tools import MAIL_TOOLS, configure_session
+from officeassistant.agents.document_tools import DOCUMENT_TOOLS
 from officeassistant.agents.presentation_tools import PRESENTATION_TOOLS
 from officeassistant.agents.connector_tools import CONNECTOR_TOOLS
 from officeassistant.agents.memory_tools import MEMORY_TOOLS, memory_instructions
@@ -79,7 +80,7 @@ def build_app():
         id="office-assistant",
         name="OfficeAssistant",
         model=_model(SETTINGS.role_leader),
-        tools=[*MAIL_TOOLS, *MEMORY_TOOLS, *CONNECTOR_TOOLS, *PRESENTATION_TOOLS],
+        tools=[*MAIL_TOOLS, *MEMORY_TOOLS, *CONNECTOR_TOOLS, *PRESENTATION_TOOLS, *DOCUMENT_TOOLS],
         instructions=anweisungen,
         db=db,
         # Verlauf klein halten: Werkzeugergebnisse früherer Läufe (Postfachlisten,

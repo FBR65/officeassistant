@@ -44,6 +44,7 @@ wird über einen OpenAI-kompatiblen Endpunkt angesprochen, die Identität über 
 | Chat und Kalender in derselben Oberfläche | umgesetzt; Chat gegen einen Ersatzdienst geprüft |
 | PowerPoint-Dateien erstellen, mit Tabellen, Diagrammen und Bildern | umgesetzt; Richtlinien werden vor dem Speichern geprüft |
 | Zentrale Designvorlage für Präsentationen | umgesetzt; Vorlage gewinnt bei Schrift und Farbe |
+| PDF und Bilder hochladen, Text lesen, Texterkennung | umgesetzt; Textlayer zuerst, sonst Texterkennung mit 200 dpi |
 
 ## Aufbau
 
@@ -66,6 +67,7 @@ Oberfläche (NiceGUI, KoliBri)  ──JWT──▶  AgentOS (Agno)  ──▶  P
 | Datenhaltung | Schema, Nutzer, Sitzungen, Verbindungen, Gedächtnis, Protokoll | `src/officeassistant/store` |
 | Kalender | ICS lesen, Wiederholungen auflösen | `src/officeassistant/calendar` |
 | Präsentationen | Richtlinien, Bau der `.pptx`, Ablage, Vorschau als Bild | `src/officeassistant/presentations` |
+| Dokumente | Hochladen, Textlayer lesen, Texterkennung, Seiten anzeigen | `src/officeassistant/documents` |
 | Betrieb | Containerdateien, Quadlets, Realm-Export | `deploy` |
 
 Die Anwendung kennt weder Verzeichnis noch Anbieter im Kern. Jeder Aufruf bekommt den
@@ -103,6 +105,7 @@ steht als `resolved_by` in der Entscheidung.
 | Chat | `/chat` | Mattermost-Verlauf, alle fünf Sekunden neu, Senden per Klick |
 | Kalender | `/kalender` | Woche von Montag bis Sonntag, Wiederholungen aufgelöst |
 | Präsentationen | `/praesentationen` | Dateien erstellen, herunterladen, löschen; Vorschau als Bilder |
+| Dokumente | `/dokumente` | PDF und Bilder hochladen, Text je Seite lesen, herunterladen, löschen |
 | Aufträge | `/auftraege` | freier Auftrag an den Assistenten, letzte Antwort |
 | Freigaben | `/freigaben` | offene Entscheidungen, freigeben oder ablehnen |
 | Routinen | `/routinen` | Routinen anlegen, ändern, abschalten, löschen; letzte Läufe |
@@ -129,6 +132,7 @@ Entscheidungen. Die Oberfläche ist deutsch, in der Sie-Form.
 | `list_calendar` | Termine ab heute, Vorgabe sieben Tage, Ortszeit | nein |
 | `remember` | Arbeitsanweisung merken | nein |
 | `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen und ablegen | nein |
+| `list_documents`, `read_document` | hochgeladene Dokumente auflisten und lesen | nein |
 | `search_jira`, `search_confluence`, `search_sharepoint`, `search_onenote`, `search_webex` | Lesesuche in den Anbindungen | nein |
 
 Das Team `office-team` verteilt Aufträge auf vier Rollen: `triage` (suchen, lesen,
@@ -247,6 +251,9 @@ Start mit einer deutschen Meldung ab, die den Variablennamen nennt.
 | `JWT_JWKS_FILE` | Datei mit den Schlüsseln des Ausstellers | ja für die API |
 | `OA_DATA_DIR` | Ablage für erzeugte Dateien, zum Beispiel `data` | nein |
 | `OA_PRESENTATION_TEMPLATE` | Pfad zur zentralen Designvorlage (`.pptx`); leer heißt eingebaute Gestaltung | nein |
+| `OA_OCR_BASE_URL`, `OA_OCR_MODEL` | Endpunkt und Modell der Texterkennung, Vorgabe `http://127.0.0.1:8080/v1` und `paddleocr-vl` | nein |
+| `OA_OCR_TIMEOUT_S`, `OA_OCR_DPI`, `OA_OCR_MIN_TEXTLAYER` | Zeitgrenze 180 s, 200 dpi, Schwelle 40 Zeichen | nein |
+| `OA_MAX_UPLOAD_BYTES` | Obergrenze für hochgeladene Dateien, Vorgabe 20 MB | nein |
 | `OA_TEST_DB_URL` | Testdatenbank für die Integrationstests | nur für Tests |
 
 Kein Wert aus `.env.example` gehört ins Repository. `.env` ist in `.gitignore` eingetragen.
@@ -259,7 +266,7 @@ OA_TEST_DB_URL=postgresql://... uv run pytest        # alle Tests, mit Datenbank
 uv run pytest -m integration                         # nur die Tests mit Außendienst
 ```
 
-Stand: **175 Tests bestanden, 9 übersprungen**. Übersprungen werden Tests, die eine laufende
+Stand: **185 Tests bestanden, 9 übersprungen**. Übersprungen werden Tests, die eine laufende
 Datenbank oder einen Testserver verlangen. Die Tests decken unter anderem ab: Anmeldung und
 Sitzungscookie, Werkzeuge des Postfachs, Freigaben über einen Neustart hinweg, Rollen des
 Teams, Zeitpläne in Alltagssprache, Prompt-Einschleusung, Kennzahlen der Übersicht, die
@@ -291,6 +298,20 @@ ihrem Master; Textmenge, Notizen und Fußzeile bleiben Pflicht.
 # zentrale Vorlage setzen (Pfad in .env):  OA_PRESENTATION_TEMPLATE=/pfad/hausvorlage.pptx
 uv run python scripts/demo_praesentation.py /tmp/demo     # Beispieldatei und Bilder
 ```
+
+## Dokumente und Texterkennung
+
+`/dokumente` nimmt PDF-Dateien sowie PNG und JPG an (bis 20 MB). Je Seite gilt:
+
+1. Textlayer lesen. Ab 40 Zeichen gilt die Seite als gelesen.
+2. Sonst die Seite mit 200 dpi zeichnen und an die Texterkennung geben
+   (`paddleocr-vl` über den OpenAI-kompatiblen Endpunkt).
+3. Ist die Erkennung nicht erreichbar, bleibt die Seite leer und der Grund steht dabei.
+
+Angezeigt wird je Seite, aus welchem Verfahren der Text stammt. Der Assistent kann die
+Dokumente lesen (`list_documents`, `read_document`) und daraus zum Beispiel eine Präsentation
+bauen. Das Verfahren ist an DocPipeline angelehnt; Feldgewinnung und Benchmark sind nicht
+übernommen.
 
 ## Betrieb mit Podman
 

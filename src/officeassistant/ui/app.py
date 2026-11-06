@@ -20,6 +20,7 @@ from officeassistant.ui import (
     chat_page,
     approvals,
     connections_page,
+    documents_page,
     auth,
     layout,
     mail_page,
@@ -58,6 +59,7 @@ mail_page.register(app)
 chat_page.register(app)
 admin_page.register(app)
 presentations_page.register(app)
+documents_page.register(app)
 
 
 

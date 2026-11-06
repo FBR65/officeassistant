@@ -58,6 +58,15 @@ class Settings(BaseSettings):
     # Ablage für erzeugte Dateien und die zentrale Designvorlage für Präsentationen
     data_dir: str = "data"
     presentation_template: str = ""
+
+    # Texterkennung für hochgeladene Dokumente (OpenAI-kompatibler Endpunkt)
+    ocr_base_url: str = "http://127.0.0.1:8080/v1"
+    ocr_model: str = "paddleocr-vl"
+    ocr_api_key: str = ""
+    ocr_timeout_s: float = 180.0
+    ocr_dpi: int = 200
+    ocr_min_textlayer: int = 40
+    max_upload_bytes: int = 20 * 1024 * 1024
     agent_id: str = "office-assistant"
     approver_token: str = ""
 

@@ -17,6 +17,7 @@ dependencies = [
     "openai>=3.46.0",
     "psycopg[binary]>=3.3.8",
     "pydantic-settings>=2.16.2",
+    "pymupdf>=2.1",
     "python-pptx>=1.0.2",
     "recurring-ical-events>=3.8.2",
 ]

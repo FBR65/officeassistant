@@ -45,7 +45,7 @@ def test_schema_allows_the_fake_provider(conn, alice):
     account = alice.save("alice", "fake", "alice@example.org", {})
 
     assert account.provider == "fake"
-    assert db.schema_version(conn) == 7
+    assert db.schema_version(conn) == 8
 
 
 def test_session_resolves_to_the_fake_provider(conn, alice):
