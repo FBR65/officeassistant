@@ -141,6 +141,18 @@ def _kandidaten(text: str) -> list[str]:
     return gefunden
 
 
+def _aussagen(folie) -> list[str]:
+    """Alles, was auf einer Folie behauptet wird: Stichpunkte, Tabellen, Diagrammnamen."""
+    zeilen = [str(punkt) for punkt in folie.stichpunkte]
+    if folie.tabelle:
+        zeilen.extend(str(z) for z in (folie.tabelle.get("kopf") or []))
+        for reihe in folie.tabelle.get("zeilen") or []:
+            zeilen.extend(str(wert) for wert in reihe)
+    if folie.diagramm:
+        zeilen.extend(str(name) for name in (folie.diagramm.get("reihen") or {}))
+    return zeilen
+
+
 def pruefe(deck: Deck, quelle: str) -> list[Befund]:
     """Gibt die Begriffe zurück, die im Quelltext nicht vorkommen."""
     if not quelle.strip():
@@ -151,7 +163,9 @@ def pruefe(deck: Deck, quelle: str) -> list[Befund]:
     gesehen: set[str] = set()
 
     for nummer, folie in enumerate(deck.folien, start=1):
-        zeilen = [folie.titel, *[str(p) for p in folie.stichpunkte]]
+        # Der Folientitel benennt den Aufbau („Ablauf", „System Overview") und darf
+        # umformulieren. Geprüft wird, was als Aussage auf der Folie steht.
+        zeilen = _aussagen(folie)
         for zeile in zeilen:
             for begriff in _kandidaten(zeile):
                 schluessel = begriff.lower()

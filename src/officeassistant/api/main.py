@@ -67,8 +67,10 @@ def build_app():
         "create_presentation die Nummer als quelle_dokument an. Dann wird jede Folie gegen den "
         "Text geprüft.",
         "Steht im Ergebnis ein Feld \"fehler\", ist NICHTS entstanden. Nenne den Fehler wörtlich "
-        "und behaupte keinen Erfolg. Korrigiere die Eingabe und rufe das Werkzeug höchstens "
-        "einmal erneut auf.",
+        "und behaupte keinen Erfolg.",
+        "Lehnt create_presentation Begriffe als nicht belegt ab, übernimm beim zweiten Versuch "
+        "den Wortlaut aus dem Dokument, statt neu zu formulieren. Nach zwei Ablehnungen höre "
+        "auf und nenne die strittigen Begriffe.",
         "Nutze nur Werkzeuge, die der Auftrag verlangt. list_calendar ausschließlich bei "
         "Fragen nach Terminen, sonst nie.",
         'Liefert ein Werkzeug ein Feld "fehler", gib diesen Text wieder, statt eine eigene '

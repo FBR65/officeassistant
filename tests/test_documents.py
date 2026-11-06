@@ -193,3 +193,25 @@ def test_deleting_a_document_removes_pages_and_file(ablage):
     assert not pfad.exists()
     assert store.liste(conn, "u-doc") == []
     assert store.seiten(conn, eintrag.id) == []
+
+
+def test_the_document_page_offers_a_presentation_button():
+    from officeassistant.ui import documents_page
+
+    seite = documents_page._liste(
+        [
+            store.Dokument(
+                id=1,
+                user_id="u-doc",
+                name="bericht.pdf",
+                pfad="/tmp/bericht.pdf",
+                seitenzahl=2,
+                zeichen=120,
+                per_ocr=0,
+                angelegt=__import__("datetime").datetime.now(__import__("datetime").UTC),
+            )
+        ]
+    )
+
+    assert "/dokumente/1/praesentation" in seite
+    assert "Präsentation daraus erstellen" in seite

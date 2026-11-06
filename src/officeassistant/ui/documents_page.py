@@ -6,8 +6,11 @@ sie. Was per Texterkennung gelesen wurde, ist an der Seite gekennzeichnet.
 
 from __future__ import annotations
 
+import asyncio
 from pathlib import Path
 from urllib.parse import quote
+
+import httpx
 
 from nicegui import ui
 from starlette.requests import Request
@@ -68,6 +71,9 @@ def _liste(eintraege: list[store.Dokument]) -> str:
               <div style="display:flex;gap:0.5rem;flex-wrap:wrap">
                 <kol-button _label="Anzeigen" _variant="primary"
                             data-href="/dokumente/{eintrag.id}"></kol-button>
+                <form method="post" action="/dokumente/{eintrag.id}/praesentation">
+                  <kol-button _label="Präsentation daraus erstellen" _variant="primary"></kol-button>
+                </form>
                 <kol-button _label="Herunterladen" _variant="secondary"
                             data-href="/dokumente/{eintrag.id}/datei"></kol-button>
                 <form method="post" action="/dokumente/{eintrag.id}/loeschen">
@@ -115,7 +121,13 @@ async def dokumente(request: Request) -> Response | None:
         layout.nav("/dokumente")
         if meldung:
             layout.banner(meldung)
-        layout.card("Vorhandene Dokumente", _liste(eintraege))
+        layout.card(
+            "Vorhandene Dokumente",
+            "<p style=\"margin:0 0 0.6rem 0;color:#555\">Der Knopf „Präsentation daraus "
+            "erstellen“ beauftragt den Assistenten. Die Datei erscheint danach unter "
+            "<a href=\"/praesentationen\">Präsentationen</a>; das dauert einige Minuten.</p>"
+            + _liste(eintraege),
+        )
         layout.card("Dokument hochladen", _formular())
     return None
 
@@ -212,6 +224,57 @@ async def hochladen(request: Request) -> Response:
     return RedirectResponse("/dokumente?meldung=" + quote(meldung), status_code=303)
 
 
+async def praesentation(request: Request) -> Response:
+    """Beauftragt den Assistenten, aus dem Dokument eine Präsentation zu bauen."""
+    user = auth.identity(request, SETTINGS)
+    if user is None:
+        return RedirectResponse("/login", status_code=303)
+    kennung = int(request.path_params.get("kennung", "0"))
+
+    conn = _verbindung()
+    try:
+        try:
+            eintrag = store.hole(conn, user.subject, kennung)
+        except store.DokumentFehler as fehler:
+            return Response(str(fehler), status_code=403)
+    finally:
+        conn.close()
+
+    try:
+        token = await auth.access_token(request, SETTINGS)
+    except auth.NotAuthenticated:
+        return RedirectResponse("/login", status_code=303)
+
+    auftrag = (
+        f"Erstelle aus dem hochgeladenen Dokument Nummer {eintrag.id} ({eintrag.name}) eine "
+        "Präsentation mit sechs bis acht Folien. Lies das Dokument zuerst vollständig. Gib bei "
+        f"create_presentation die Nummer {eintrag.id} als quelle_dokument an. Jede Folie braucht "
+        "eine Sprechnotiz. Nenne am Ende den Dateinamen."
+    )
+    asyncio.create_task(_beauftragen(token, user.subject, auftrag))
+    return RedirectResponse(
+        "/dokumente?meldung="
+        + quote(
+            "Der Assistent arbeitet. Die Präsentation erscheint in einigen Minuten unter "
+            "„Präsentationen“."
+        ),
+        status_code=303,
+    )
+
+
+async def _beauftragen(token: str, user_id: str, auftrag: str) -> None:
+    """Lauf im Hintergrund; die Dauer sprengt sonst die Geduld des Browsers."""
+    try:
+        async with httpx.AsyncClient(timeout=900) as client:
+            await client.post(
+                f"{SETTINGS.api_base_url}/agents/{SETTINGS.agent_id}/runs",
+                headers={"Authorization": f"Bearer {token}"},
+                data={"message": auftrag, "stream": "false", "user_id": user_id},
+            )
+    except httpx.HTTPError:
+        return
+
+
 async def herunterladen(request: Request) -> Response:
     user = auth.identity(request, SETTINGS)
     if user is None:
@@ -257,4 +320,10 @@ def register(app) -> None:
     )
     app.add_route(
         "/dokumente/{kennung}/loeschen", loeschen, methods=["POST"], name="dokument_loeschen"
+    )
+    app.add_route(
+        "/dokumente/{kennung}/praesentation",
+        praesentation,
+        methods=["POST"],
+        name="dokument_praesentation",
     )

@@ -163,6 +163,27 @@ def create_presentation(
                 seiten = dokumente.seiten(conn_quelle, beleg.id)
             finally:
                 conn_quelle.close()
+            # Quellenangabe aus dem Dokument bilden, damit sie nachprüfbar ist.
+            seiten_liste = ", ".join(f"{s.nummer}" for s in seiten if s.text)
+            angabe = (
+                f"Dokument „{beleg.name}“, Seiten {seiten_liste}, Stand "
+                f"{beleg.angelegt.astimezone():%d.%m.%Y}"
+            )
+            # Gibt es schon eine Folie „Quellen", wird die Angabe dort ergänzt, statt eine
+            # zweite Quellenfolie anzuhängen.
+            vorhandene_quelle = next(
+                (
+                    folie
+                    for folie in deck.folien
+                    if "quelle" in folie.titel.lower() or "source" in folie.titel.lower()
+                ),
+                None,
+            )
+            if vorhandene_quelle is not None:
+                vorhandene_quelle.stichpunkte.append(angabe)
+            else:
+                deck.quelle = f"{deck.quelle} · {angabe}" if deck.quelle else angabe
+
             befunde = proof.pruefe(deck, "\n\n".join(seite.text for seite in seiten))
             if befunde:
                 return {

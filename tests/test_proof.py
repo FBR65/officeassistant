@@ -67,14 +67,43 @@ def test_the_hint_names_the_slide_and_the_term():
     assert "Comprehend" in text
 
 
-def test_a_hyphenated_heading_is_checked_by_its_parts():
+def test_a_hyphenated_word_is_checked_by_its_parts():
     """„AWS-Dienste" wird über den Teil „AWS" geprüft, nicht über den Wortlaut."""
-    deck = _deck([], titel="AWS-Dienste")
+    deck = _deck(["AWS-Dienste übernehmen die Arbeit"])
 
     assert [befund.begriff for befund in proof.pruefe(deck, QUELLE)] == ["AWS"]
 
 
-def test_with_the_part_in_the_source_the_heading_passes():
-    deck = _deck([], titel="AWS-Dienste")
+def test_with_the_part_in_the_source_the_sentence_passes():
+    deck = _deck(["AWS-Dienste übernehmen die Arbeit"])
 
     assert proof.pruefe(deck, "Der Dienst läuft bei AWS.") == []
+
+
+def test_a_title_may_paraphrase():
+    """Ein Folientitel benennt den Aufbau und wird nicht geprüft."""
+    deck = _deck([], titel="System Overview")
+
+    assert proof.pruefe(deck, QUELLE) == []
+
+
+def test_the_source_line_is_added_to_an_existing_sources_slide():
+    """Gibt es schon eine Folie mit dem Titel Quellen, entsteht keine zweite."""
+    deck = rules.Deck(
+        titel="Bericht",
+        quelle="Eigene Erhebung",
+        folien=[
+            rules.Folie(titel="Ausgangslage", stichpunkte=["Amazon Textract"], notiz="Notiz."),
+            rules.Folie(titel="Quellen", stichpunkte=["Eigene Erhebung"], notiz="Notiz."),
+        ],
+    )
+    angabe = 'Dokument "idp_upload.pdf", Seiten 2, 3, Stand 06.11.2026'
+
+    vorhandene = next(
+        (f for f in deck.folien if "quelle" in f.titel.lower()), None
+    )
+    assert vorhandene is not None
+    vorhandene.stichpunkte.append(angabe)
+
+    assert sum(1 for f in deck.folien if "quelle" in f.titel.lower()) == 1
+    assert any("idp_upload.pdf" in p for p in vorhandene.stichpunkte)
