@@ -131,7 +131,7 @@ Entscheidungen. Die Oberfläche ist deutsch, in der Sie-Form.
 | `archive_mail` | Nachricht ablegen | **ja** |
 | `list_calendar` | Termine ab heute, Vorgabe sieben Tage, Ortszeit | nein |
 | `remember` | Arbeitsanweisung merken | nein |
-| `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen und ablegen; mit `quelle_dokument` wird jede Folie gegen den Dokumenttext geprüft | nein |
+| `create_presentation` | PowerPoint-Datei aus Titel und Folien erstellen; `quelle_dokumente` prüft jede Folie gegen den Text dieser Dokumente, `bilder` setzt hochgeladene Bilder ein | nein |
 | `list_documents`, `read_document` | hochgeladene Dokumente auflisten und lesen | nein |
 | `search_jira`, `search_confluence`, `search_sharepoint`, `search_onenote`, `search_webex` | Lesesuche in den Anbindungen | nein |
 
@@ -293,9 +293,14 @@ enden in derselben Ablage und gelten denselben Richtlinien.
 Verstößt eine Beschreibung gegen eine Regel, entsteht **keine** Datei; die Meldung nennt die
 Folie und den Grund.
 
-Wird die Präsentation aus einem hochgeladenen Dokument gebaut, prüft das Werkzeug jede Folie
-gegen dessen Text (Feld `quelle_dokument`). Nicht belegte Eigennamen, Abkürzungen und Zahlen
-verhindern die Datei. So fiel im Test „Amazon Comprehend" auf, das im Artikel nicht vorkommt. Ist eine Designvorlage gesetzt, kommen Layout, Schrift und Farben aus
+Wird die Präsentation aus hochgeladenen Dokumenten gebaut, prüft das Werkzeug jede Folie gegen
+deren Text (Feld `quelle_dokumente`, eine Liste von Nummern). Nicht belegte Eigennamen,
+Abkürzungen und Zahlen verhindern die Datei. So fiel im Test „Amazon Comprehend" auf, das im
+Artikel nicht vorkommt. Die Quellenfolie nennt alle Dokumente mit Seiten und Stand.
+
+Bilder setzt das Werkzeug über das Feld `bilder` ein: `{"dokument": 2, "beschriftung": "…"}`
+nimmt ein hochgeladenes PNG oder JPG, `{"pfad": "/…"}` eine Datei auf dem Server,
+`{"nachricht": "INBOX|75", "anhang": "bild.png"}` einen Anhang aus dem Postfach. Ist eine Designvorlage gesetzt, kommen Layout, Schrift und Farben aus
 ihrem Master; Textmenge, Notizen und Fußzeile bleiben Pflicht.
 
 ```bash

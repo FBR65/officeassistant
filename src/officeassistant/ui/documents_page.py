@@ -96,7 +96,9 @@ def _formular() -> str:
       <div><kol-button _label="Hochladen und Text lesen" _variant="primary"></kol-button></div>
       <p style="margin:0;color:#555;font-size:0.9em">
         Hat eine Seite keinen Textlayer, liest die Texterkennung sie mit 200 dpi. Das dauert
-        je Seite einige Sekunden; die Seite zeigt danach, was aus welchem Verfahren stammt.
+        je Seite einige Sekunden; die Seite zeigt danach, was aus welchem Verfahren stammt.<br>
+        Bilder ohne Text (PNG, JPG) laden Sie hier ebenfalls hoch. Sie stehen dann für Folien
+        bereit: der Assistent setzt sie mit der Dokumentnummer als Bild ein.
       </p>
     </form>
     """

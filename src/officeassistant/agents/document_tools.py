@@ -37,6 +37,11 @@ def list_documents(run_context: RunContext | None = None) -> list[dict[str, Any]
             {
                 "nummer": eintrag.id,
                 "name": eintrag.name,
+                "art": (
+                    "bild"
+                    if eintrag.pfad.lower().endswith((".png", ".jpg", ".jpeg"))
+                    else "pdf"
+                ),
                 "seiten": eintrag.seitenzahl,
                 "zeichen": eintrag.zeichen,
                 "seiten_per_texterkennung": eintrag.per_ocr,

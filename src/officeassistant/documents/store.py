@@ -138,6 +138,27 @@ def seiten(conn: psycopg.Connection, kennung: int) -> list[Seite]:
     ]
 
 
+BILDENDUUNGEN = ("png", "jpg", "jpeg")
+
+
+def als_bild(conn: psycopg.Connection, user_id: str, kennung: int) -> Path:
+    """Gibt den Pfad einer hochgeladenen Bilddatei zurück.
+
+    Ein PDF ist kein Bild; dafür gibt es `lese` und die Seiten. Wer ein Bild auf einer
+    Folie will, lädt es als PNG oder JPG hoch.
+    """
+    eintrag = hole(conn, user_id, kennung)
+    pfad = Path(eintrag.pfad)
+    if pfad.suffix.lower().lstrip(".") not in BILDENDUUNGEN:
+        raise DokumentFehler(
+            f"Die Datei {eintrag.name} ist kein Bild. Fuer ein Bild auf der Folie laden Sie "
+            "eine PNG- oder JPG-Datei hoch."
+        )
+    if not pfad.is_file():
+        raise DokumentFehler(f"Die Bilddatei fehlt: {eintrag.name}")
+    return pfad
+
+
 def loeschen(conn: psycopg.Connection, user_id: str, kennung: int) -> None:
     eintrag = hole(conn, user_id, kennung)
     with conn.transaction():

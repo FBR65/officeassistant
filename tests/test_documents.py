@@ -215,3 +215,44 @@ def test_the_document_page_offers_a_presentation_button():
 
     assert "/dokumente/1/praesentation" in seite
     assert "Präsentation daraus erstellen" in seite
+
+
+@pytest.mark.integration
+def test_an_uploaded_image_can_be_used_as_a_picture(ablage):
+    conn, ordner = ablage
+    bild = ordner / "foto.png"
+    doc = pymupdf.open()
+    seite = doc.new_page(width=200, height=200)
+    seite.get_pixmap(dpi=72).save(str(bild))
+    doc.close()
+
+    eintrag = store.ablegen(
+        conn, "u-doc", "foto.png", bild, reader.lese(bild, ocr=_client_mit_antwort("Bild"))
+    )
+
+    assert store.als_bild(conn, "u-doc", eintrag.id) == bild
+
+
+@pytest.mark.integration
+def test_a_pdf_is_not_a_picture(ablage):
+    conn, ordner = ablage
+    pfad = _pdf_mit_text(ordner / "bericht.pdf")
+    eintrag = store.ablegen(conn, "u-doc", "bericht.pdf", pfad, reader.lese(pfad, ocr=None))
+
+    with pytest.raises(store.DokumentFehler, match="kein Bild"):
+        store.als_bild(conn, "u-doc", eintrag.id)
+
+
+@pytest.mark.integration
+def test_a_foreign_picture_is_refused(ablage):
+    conn, ordner = ablage
+    bild = ordner / "foto.png"
+    doc = pymupdf.open()
+    doc.new_page(width=200, height=200).get_pixmap(dpi=72).save(str(bild))
+    doc.close()
+    eintrag = store.ablegen(
+        conn, "u-doc", "foto.png", bild, reader.lese(bild, ocr=_client_mit_antwort("Bild"))
+    )
+
+    with pytest.raises(store.DokumentFehler):
+        store.als_bild(conn, "u-fremd", eintrag.id)

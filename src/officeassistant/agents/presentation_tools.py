@@ -9,6 +9,7 @@ auf eine Nachricht samt Anhangsnamen. Der Bildnachweis bleibt Pflicht.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
@@ -72,6 +73,7 @@ def create_presentation(
     untertitel: str = "",
     quelle: str = "",
     quelle_dokument: int = 0,
+    quelle_dokumente: list[int] | None = None,
     run_context: RunContext | None = None,
 ) -> dict[str, Any]:
     """Erstellt eine PowerPoint-Datei (.pptx) und legt sie in der Ablage ab.
@@ -88,8 +90,10 @@ def create_presentation(
             `beschriftung`).
         untertitel: Untertitel der Titelfolie.
         quelle: Text für die letzte Folie „Quellen"; Pflicht, wenn Bilder verwendet werden.
-        quelle_dokument: Nummer eines hochgeladenen Dokuments. Ist sie gesetzt, wird jede
-            Folie gegen dessen Text geprüft; nicht belegte Begriffe verhindern die Datei.
+        quelle_dokument: Nummer eines hochgeladenen Dokuments.
+        quelle_dokumente: Nummern mehrerer Dokumente. Sind Nummern gesetzt, wird jede Folie
+            gegen den Text aller dieser Dokumente geprüft; nicht belegte Begriffe
+            verhindern die Datei.
     """
     settings = Settings.load()
     beschreibung = {
@@ -110,8 +114,31 @@ def create_presentation(
             for bild in bilder:
                 if not isinstance(bild, dict):
                     return {"fehler": f"Folie {nummer}: Jeder Bildeintrag muss ein Objekt sein."}
-                if bild.get("pfad"):
+                pfad_wert = str(bild.get("pfad") or "").strip()
+                if pfad_wert and Path(pfad_wert).is_file():
                     continue
+                # Modelle schreiben statt der Nummer auch „dokument 2" ins Feld pfad.
+                if not bild.get("dokument") and pfad_wert:
+                    ziffern = re.findall(r"\d+", pfad_wert)
+                    if ziffern:
+                        bild["dokument"] = int(ziffern[-1])
+                if bild.get("dokument"):
+                    from officeassistant.documents import store as dokumente
+
+                    conn_bild = _verbindung(settings)
+                    try:
+                        try:
+                            pfad = dokumente.als_bild(
+                                conn_bild, user_id, int(bild["dokument"])
+                            )
+                        except dokumente.DokumentFehler as fehler:
+                            return {"fehler": f"Folie {nummer}: {fehler}"}
+                    finally:
+                        conn_bild.close()
+                    bild["pfad"] = str(pfad)
+                    continue
+                if pfad_wert:
+                    return {"fehler": f"Folie {nummer}: Bild nicht gefunden: {pfad_wert}"}
                 try:
                     pfad = _bild_aus_postfach(session, bild, _zielordner(settings, user_id))
                 except Exception as fehler:  # noqa: BLE001 - Auskunft statt Absturz
@@ -151,26 +178,32 @@ def create_presentation(
                 "hinweis": "Diese Präsentation liegt bereits vor. Werkzeug nicht erneut aufrufen.",
             }
 
-        if quelle_dokument:
+        kennungen = _kennungen(quelle_dokument, quelle_dokumente)
+        if kennungen:
             from officeassistant.documents import store as dokumente
 
             conn_quelle = _verbindung(settings)
+            texte: list[str] = []
+            angaben: list[str] = []
             try:
-                try:
-                    beleg = dokumente.hole(conn_quelle, user_id, int(quelle_dokument))
-                except dokumente.DokumentFehler as fehler:
-                    return {"fehler": str(fehler)}
-                seiten = dokumente.seiten(conn_quelle, beleg.id)
+                for kennung in kennungen:
+                    try:
+                        beleg = dokumente.hole(conn_quelle, user_id, kennung)
+                    except dokumente.DokumentFehler as fehler:
+                        return {"fehler": str(fehler)}
+                    seiten = dokumente.seiten(conn_quelle, beleg.id)
+                    texte.append("\n\n".join(seite.text for seite in seiten))
+                    gelesen_seiten = ", ".join(str(seite.nummer) for seite in seiten if seite.text)
+                    angaben.append(
+                        f"{beleg.name} (Seiten {gelesen_seiten}, Stand "
+                        f"{beleg.angelegt.astimezone():%d.%m.%Y})"
+                    )
             finally:
                 conn_quelle.close()
-            # Quellenangabe aus dem Dokument bilden, damit sie nachprüfbar ist.
-            seiten_liste = ", ".join(f"{s.nummer}" for s in seiten if s.text)
-            angabe = (
-                f"Dokument „{beleg.name}“, Seiten {seiten_liste}, Stand "
-                f"{beleg.angelegt.astimezone():%d.%m.%Y}"
+
+            angabe = "Dokumente: " + "; ".join(angaben) if len(angaben) > 1 else (
+                "Dokument: " + angaben[0]
             )
-            # Gibt es schon eine Folie „Quellen", wird die Angabe dort ergänzt, statt eine
-            # zweite Quellenfolie anzuhängen.
             vorhandene_quelle = next(
                 (
                     folie
@@ -184,14 +217,14 @@ def create_presentation(
             else:
                 deck.quelle = f"{deck.quelle} · {angabe}" if deck.quelle else angabe
 
-            befunde = proof.pruefe(deck, "\n\n".join(seite.text for seite in seiten))
+            befunde = proof.pruefe(deck, "\n\n".join(texte))
             if befunde:
                 return {
-                    "fehler": "Nicht im Dokument belegt: "
+                    "fehler": "Nicht in den Dokumenten belegt: "
                     + "; ".join(str(befund) for befund in befunde[:8])
                     + (f" (und {len(befunde) - 8} weitere)" if len(befunde) > 8 else ""),
                     "hinweis": "Entfernen Sie diese Begriffe oder übernehmen Sie die Schreibweise "
-                    "aus dem Dokument. Ohne Beleg entsteht keine Datei.",
+                    "aus den Dokumenten. Ohne Beleg entsteht keine Datei.",
                 }
 
         try:
@@ -226,6 +259,16 @@ def create_presentation(
         "ablege": f"/praesentationen (Nummer {eintrag.id})",
         "hinweis": "Die Datei ist abgelegt. Werkzeug nicht erneut aufrufen.",
     }
+
+
+def _kennungen(einzeln: int, mehrere: list[int] | None) -> list[int]:
+    """Fasst die einzeln und die als Liste genannten Dokumentnummern zusammen."""
+    alle = ([int(einzeln)] if einzeln else []) + [int(k) for k in (mehrere or []) if k]
+    gesehen: list[int] = []
+    for kennung in alle:
+        if kennung not in gesehen:
+            gesehen.append(kennung)
+    return gesehen
 
 
 def _verbindung(settings: Settings):

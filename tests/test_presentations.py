@@ -215,3 +215,12 @@ def test_deleting_removes_the_file(ablage):
 
     assert not pfad.exists()
     assert store.liste(conn, "u-praes") == []
+
+
+def test_several_source_documents_are_merged_without_duplicates():
+    from officeassistant.agents.presentation_tools import _kennungen
+
+    assert _kennungen(0, [1, 2, 2, 3]) == [1, 2, 3]
+    assert _kennungen(4, [1, 4]) == [4, 1]
+    assert _kennungen(0, None) == []
+    assert _kennungen(7, []) == [7]

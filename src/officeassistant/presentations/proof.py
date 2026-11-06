@@ -82,6 +82,21 @@ ALLGEMEIN = frozenset(
     }
 )
 
+# Wörter, die am Satzanfang großgeschrieben stehen, ohne Eigenname zu sein. Sie dürfen
+# kein Wortpaar bilden („Zwei Dokumente" ist kein Beleg, „Amazon Comprehend" schon).
+SATZANFANG = frozenset(
+    {
+        "ein", "eine", "einen", "einem", "einer", "eines",
+        "zwei", "drei", "vier", "fünf", "sechs", "sieben", "acht", "neun", "zehn",
+        "der", "die", "das", "den", "dem", "des",
+        "dieser", "diese", "dieses", "diesen", "diesem",
+        "alle", "allen", "jede", "jeder", "jedes", "keine", "kein",
+        "im", "in", "am", "an", "auf", "aus", "bei", "mit", "für", "von", "vor", "nach",
+        "wenn", "dann", "nun", "hier", "dort", "so", "auch", "nur", "aber", "oder",
+        "das", "es", "sie", "er", "wir", "ich",
+    }
+)
+
 _ZAHL = re.compile(r"\d{1,2}:\d{2}|\d+(?:[.,]\d+)?\s*%?")
 _WORT = re.compile(r"[A-Za-zÄÖÜäöüß0-9][A-Za-zÄÖÜäöüß0-9._+-]*")
 
@@ -111,7 +126,7 @@ def _kandidaten(text: str) -> list[str]:
 
     worte = [(t.group(0), t.start(), t.end()) for t in _WORT.finditer(text)]
     for wort, _start, _ende in worte:
-        if len(wort) < 2:
+        if len(wort) < 2 or wort.lower() in SATZANFANG:
             continue
         if "-" in wort:
             # Zusammensetzungen wie „AWS-Dienste" prüfen ihre Teile, nicht das Ganze.
@@ -132,6 +147,8 @@ def _kandidaten(text: str) -> list[str]:
         wort_b, start_b, _ = zweiter
         if text[ende_a : start_b].strip():
             continue  # dazwischen steht ein Satzzeichen
+        if wort_a.lower() in SATZANFANG or wort_b.lower() in SATZANFANG:
+            continue
         if not (wort_a[0].isupper() and wort_b[0].isupper()):
             continue
         if wort_a.lower() in ALLGEMEIN and wort_b.lower() in ALLGEMEIN:
